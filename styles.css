@@ -1208,11 +1208,14 @@ footer {
 }
 
 .article-section {
-  margin-bottom: 2.2rem;
+  margin-bottom: 5rem;
+}
+.article-main .article-section {
+  padding: 0;
 }
 
 .article-section + .article-section {
-  margin-top: 2.2rem;
+  margin-top: 5rem;
 }
 
 .article-section-label {
