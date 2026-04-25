@@ -1,38 +1,29 @@
-const CONTACT_EMAIL = "kika.gamer.analyst@protonmail.com";
-
-function buildContactMailto(form) {
-  const data = Object.fromEntries(new FormData(form).entries());
-  const subject = data.subject ? `Renseignement - ${data.subject}` : "Renseignement";
-  const body = [
-    "Bonjour Kika,",
-    "",
-    "Je vous contacte via le site pour une demande de renseignement.",
-    "",
-    `Nom / studio : ${data.name || "-"}`,
-    `Email : ${data.email || "-"}`,
-    "",
-    "Message :",
-    data.message || "-"
-  ].join("\n");
-
-  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const contactForm = document.querySelector("[data-contact-form]");
-  if (!contactForm) {
-    return;
-  }
+  if (!contactForm) return;
 
   const status = document.querySelector("[data-contact-status]");
 
-  contactForm.addEventListener("submit", (event) => {
+  contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (status) {
-      status.textContent = "Votre messagerie va s'ouvrir avec le message deja prepare.";
+      status.textContent = "Envoi en cours...";
     }
 
-    window.location.href = buildContactMailto(contactForm);
+    const data = new FormData(contactForm);
+
+    const response = await fetch("https://formspree.io/f/mwvaydnb", {
+      method: "POST",
+      body: data,
+      headers: { Accept: "application/json" }
+    });
+
+    if (response.ok) {
+      if (status) status.textContent = "Message envoyé avec succès, merci !";
+      contactForm.reset();
+    } else {
+      if (status) status.textContent = "Une erreur s'est produite, veuillez réessayer.";
+    }
   });
 });
