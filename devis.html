@@ -566,12 +566,10 @@
           <select name="plateforme">
             <option value="">Sélectionner…</option>
             <option>PC (Windows)</option>
-            <option>PC (Mac)</option>
             <option>PC + Console</option>
             <option>PlayStation 5</option>
-            <option>Xbox Series</option>
             <option>Nintendo Switch</option>
-            <option>Mobile (iOS / Android)</option>
+            <option>Mobile (iOS)</option>
             <option>Multi-plateforme</option>
           </select>
         </div>
@@ -775,6 +773,85 @@
     },
   };
 
+  // Grille tarifaire par axe
+  const prixAxes = {
+    'QA technique': 80,
+    'Expérience joueur globale': 60,
+    'Cohérence narrative': 70,
+    'Interface & UX': 60,
+    'Équilibrage & progression': 70,
+    'Immersion & atmosphère': 60,
+    'Représentation & inclusivité': 50,
+    'Accessibilité': 50,
+  };
+
+  // Temps de jeu de base par formule (en heures)
+  const tempsBase = {
+    simple: 4,
+    complete: 10,
+    audit: 20,
+  };
+
+  function calculerDevis(formData, formuleKey) {
+    const axes = formData.getAll('axe');
+    const stade = formData.get('stade') || '';
+    const delai = formData.get('delai') || '';
+    const genre = formData.getAll('genre');
+    const plateforme = formData.get('plateforme') || '';
+
+    // Prix de base selon les axes sélectionnés
+    let prixTotal = axes.reduce((sum, axe) => sum + (prixAxes[axe] || 0), 0);
+
+    // Estimation du temps de jeu
+    let tempsJeu = tempsBase[formuleKey] || 4;
+    let notes = [];
+
+    // Majorations
+    let majoration = 1;
+
+    if (genre.includes('Narration') || genre.includes('Aventure')) {
+      majoration += 0.30;
+      notes.push('Jeu narratif à choix multiples : +30% sur le temps estimé');
+    }
+
+    if (delai === 'Urgent (−1 semaine)') {
+      majoration += 0.25;
+      notes.push('Délai urgent : +25% sur le tarif');
+    }
+
+    if (stade === 'Post-launch') {
+      majoration += 0.15;
+      notes.push('Post-launch : +15% sur le tarif');
+    }
+
+    if (stade === 'Prototype' || stade === 'Alpha') {
+      majoration -= 0.20;
+      notes.push('Stade précoce (prototype/alpha) : -20% sur le tarif');
+    }
+
+    prixTotal = Math.round(prixTotal * majoration);
+    tempsJeu = Math.round(tempsJeu * (majoration > 1 ? majoration : 1));
+
+    // Résumé du devis
+    const lignesAxes = axes.map(a => `- ${a} : ${prixAxes[a] || 0}€`).join('\n');
+
+    return `
+=== ESTIMATION AUTOMATIQUE DU DEVIS ===
+
+Formule sélectionnée : ${formules[formuleKey]?.label || formuleKey}
+Axes sélectionnés :
+${lignesAxes || '- Aucun axe sélectionné'}
+
+Temps de jeu estimé : ~${tempsJeu}h
+
+${notes.length > 0 ? 'Ajustements appliqués :\n' + notes.map(n => '- ' + n).join('\n') : ''}
+
+TOTAL ESTIMÉ : ${prixTotal}€ HT
+(Estimation indicative — devis définitif après échange)
+=====================================
+    `.trim();
+  }
+
   function setFormule(key) {
     document.querySelectorAll('.formule-tab').forEach(t => t.classList.remove('active'));
     document.querySelector(`.formule-tab[data-formule="${key}"]`).classList.add('active');
@@ -799,7 +876,6 @@
       </div>
     `;
 
-    // pré-sélectionner le budget correspondant
     if (key === 'simple') selectBudgetByValue('< 200 €');
     if (key === 'complete') selectBudgetByValue('200 – 500 €');
     if (key === 'audit') selectBudgetByValue('Sur devis');
@@ -839,8 +915,12 @@
     const form = document.getElementById('devis-form');
     const submitButton = document.querySelector('.devis-submit-btn');
     const activeFormule = document.querySelector('.formule-tab.active');
-    const selectedFormule = activeFormule ? activeFormule.textContent.trim() : formules.simple.label;
+    const formuleKey = activeFormule ? activeFormule.dataset.formule : 'simple';
+    const selectedFormule = formules[formuleKey]?.label || formuleKey;
     const formData = new FormData(form);
+
+    // Calcul automatique du devis
+    const estimation = calculerDevis(formData, formuleKey);
 
     const params = {
       formule: selectedFormule,
@@ -858,6 +938,7 @@
       axe: formData.getAll('axe').join(', '),
       points_sensibles: formData.get('points_sensibles') || '',
       budget: formData.get('budget') || '',
+      estimation_devis: estimation,
     };
 
     submitButton.disabled = true;
@@ -870,12 +951,11 @@
     }).catch((error) => {
       submitButton.disabled = false;
       submitButton.textContent = 'Envoyer la demande ->';
-      alert("L'envoi a echoue. Verifiez votre configuration EmailJS et reessayez.");
+      alert("L'envoi a échoué. Vérifiez votre configuration EmailJS et réessayez.");
       console.error(error);
     });
   }
 
-  // Lire le paramètre ?formule= dans l'URL
   function initFromURL() {
     const params = new URLSearchParams(window.location.search);
     const f = params.get('formule');
