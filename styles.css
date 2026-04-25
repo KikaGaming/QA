@@ -1361,3 +1361,22 @@ code {
     letter-spacing: 0.15em;
   }
 }
+.article-axes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.article-axe {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  background: rgba(212, 83, 126, 0.08);
+  border: 1px solid rgba(212, 83, 126, 0.25);
+  color: var(--rose);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+}
